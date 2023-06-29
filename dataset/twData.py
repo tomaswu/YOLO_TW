@@ -17,7 +17,7 @@ import utils
 from pycocotools.coco import COCO
 
 class cocoDataSet(data.Dataset):
-    def __init__(self,dataType = 'val',gird_size=[13,26,52],classified_num=85) -> None:
+    def __init__(self,dataType = 'val',gird_size=[13,26,52],classified_num=80) -> None:
         super().__init__()
         self.gs=np.array(gird_size)
         self.classified_num=classified_num
@@ -58,12 +58,13 @@ class cocoDataSet(data.Dataset):
     def create_label(self,bboxes):
         w = self.cfg['output_size'][0]
         strides = w/self.gs
-        for m
+        labels = [np.zeros([strides[i],strides[i],3,1+4+self.classified_num],dtype=np.float32) for i in range(strides.shape[0])]
         for b in bboxes:
             #onehot
             onehot = np.zeros(self.classified_num,dtype=np.float32)
             onehot[b[0]] = 1
             xywh=np.array(b[1])/strides
+            ...
             
 
 
