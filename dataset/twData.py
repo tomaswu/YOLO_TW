@@ -117,5 +117,5 @@ if __name__=='__main__':
     loader = data.DataLoader(d,batch_size=64,shuffle=True,num_workers=0,drop_last=False)
     i=0
     for da in loader:
-        print('da:',i)
+        print('da:',i,da[1].shape)
         i+=1
