@@ -9,6 +9,15 @@
 
 import numpy as np
 import cv2
+import time
+
+def TimeTest(f):
+    def fc(*args,**kwargs):
+        t0=time.time()
+        r=f(*args,**kwargs)
+        print(f'TIMETEST::{f.__name__} spent:{(time.time()-t0)*1000:.3f} ms')
+        return r
+    return fc
 
 def padding(img,output_size,gray=False):
     '''img: ndarray dims=row,col,rgb
@@ -55,6 +64,12 @@ def drawLabel(img,label,t=0):
         img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
     for i in label:
         idx,b=i
+        if (b<1).all():
+            b=np.array(b)
+            b[0]=b[0]*img.shape[1]
+            b[1]=b[1]*img.shape[0]
+            b[2]=b[2]*img.shape[1]
+            b[3]=b[3]*img.shape[0]
         b=[int(j) for j in b]
         cv2.rectangle(img,b,[0,255,0],1,cv2.LINE_AA)
         cv2.putText(img,f'{idx}',(b[0],b[1]),cv2.FONT_HERSHEY_SIMPLEX,0.75,[0,0,255],1)
@@ -82,6 +97,30 @@ def iouByBbox(b1,b2):
     u=wa*ha+wb*hb-i
     return i/u
 
+def t_cwh2anchors_cwh(t,pre_scale):
+    tx,ty,tw,th=t
+    cx,cy,pw,ph=pre_scale
+    return np.array([tx+cx,ty+cy,pw*np.exp(tw),ph*np.exp(th)])
+
+def anchors_cwh2t_cwh(achors_xywh,pre_scale):
+    cx,cy,pw,ph=pre_scale
+    x,y,w,h=achors_xywh
+    return np.array([x-cx,y-cy,np.log(w/pw),np.log(h/ph)])
+
+def cwh2xywh(cwh):
+    cx,cy,w,h=cwh
+    return np.array([cx-w/2,cy-h/2,w,h])
+
+def xywh2cwh(xywh):
+    x,y,w,h=xywh
+    return np.array([x+w/2,y+h/2,w,h])
+
+def tcwh2xywh(tcwh,size,xind,yind,pw,ph):
+    gs=[13,26,52]
+    g=gs[size]
+    p=[xind/g,yind/g,pw*g,ph*g]
+    a=t_cwh2anchors_cwh(tcwh,p)
+    return cwh2xywh(a)
 
 if __name__=='__main__':
     print(iouByBbox([5,5,3,3],[6,7,5,5]))
