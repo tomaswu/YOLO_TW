@@ -77,6 +77,15 @@ def drawLabel(img,label,t=0):
     cv2.waitKey(t)
 
 def iouByBbox(b1,b2):
+    """calulate iou of two bbox
+
+    Args:
+        b1 (array): bbox with x,y,w,h
+        b2 (array): bbox with x,y,w,h
+
+    Returns:
+        flaot: iou of b1 and b2
+    """    
     #A
     x1,y1,wa,ha=b1
     x2=x1+wa
@@ -122,9 +131,23 @@ def tcwh2xywh(tcwh,size,xind,yind,pw,ph):
     a=t_cwh2anchors_cwh(tcwh,p)
     return cwh2xywh(a)
 
-if __name__=='__main__':
-    print(iouByBbox([5,5,3,3],[6,7,5,5]))
 
+def onehot_smooth(onehot,N_classes=-1,hyper_parameter = 0.01):
+    if N_classes<=0:
+        N_classes=len(onehot.flatten())
+    osm = onehot * (1 - hyper_parameter) + hyper_parameter * 1.0 / N_classes
+    return osm
+
+if __name__=='__main__':
+    import matplotlib.pyplot as plt
+    x=np.arange(100)
+    onehot = np.zeros(100)
+    onehot[77]=1
+    os = onehot_smooth(onehot)
+    plt.figure()
+    # plt.plot(x,onehot,marker='o')
+    plt.plot(x,os)
+    plt.show()
 
 
 

@@ -69,6 +69,7 @@ class cocoDataSet(data.Dataset):
             #onehot
             onehot = np.zeros(self.classified_num,dtype=np.float32)
             onehot[b[0]] = 1
+            onehot = utils.onehot_smooth(onehot,self.classified_num)
             best_dectind=0
             best_xind=0
             best_yind=0
