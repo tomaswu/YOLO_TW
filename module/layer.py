@@ -72,3 +72,65 @@ class Residual_block(nn.Module):
         r = self.__conv2(r)
         out = x + r
         return out
+    
+# 下采样层：既改变通道数，也改变形状
+class DownSampleLayer(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(DownSampleLayer, self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels,out_channels,1,1,0),
+            nn.Conv2d(out_channels,in_channels,3,1,1),
+            nn.Conv2d(in_channels,out_channels,1,1,0),
+            nn.Conv2d(out_channels,in_channels,3,1,1),
+            nn.Conv2d(in_channels,out_channels,1,1,0)
+        )
+
+    def forward(self, x):
+        return self.conv(x)
+
+
+# 采样层 
+class SampleLayer(nn.Module):
+    def __init__(self,scale_factor=2):
+        super(SampleLayer, self).__init__()
+        self.scale_factor=scale_factor
+
+    def forward(self, x):
+        return F.interpolate(x, scale_factor=self.scale_factor, mode='nearest')
+    
+
+class DectLayer(nn.Module):
+    def __init__(self,in_channels,out_channels,N_classes=80):
+        super().__init__()
+        self.dect = nn.Sequential(
+            Convolutional(in_channels,out_channels,3,1,1,'bn','leaky'),
+            nn.Conv2d(out_channels,(N_classes+5)*3,1,1,0)
+        )
+    def forward(self,x):
+        return self.dect(x)
+    
+class ConvolutionalSetLayer(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(ConvolutionalSetLayer, self).__init__()
+        self.sub_module = nn.Sequential(
+            # 讲解中卷积神经网络的的5个卷积
+            Convolutional(in_channels, out_channels, 1, 1, 0,'bn','leaky'),
+            Convolutional(out_channels, in_channels, 3, 1, 1,'bn','leaky'),
+
+            Convolutional(in_channels, out_channels, 1, 1, 0,'bn','leaky'),
+            Convolutional(out_channels, in_channels, 3, 1, 1,'bn','leaky'),
+
+            Convolutional(in_channels, out_channels, 1, 1, 0,'bn','leaky')
+        )
+
+    def forward(self, x):
+        return self.sub_module(x)
+
+
+if __name__=='__main__':
+    a=th.rand(8,3,52,52)
+    dl=DownSampleLayer(3,12)
+    d=dl(a)
+    print(d.shape)
+    u=SampleLayer(0.5)(d)
+    print(u.shape)
