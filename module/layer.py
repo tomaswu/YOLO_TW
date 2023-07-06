@@ -60,7 +60,6 @@ class Convolutional(nn.Module):
             x = self.__activate(x)
         return x
 
-
 class Residual_block(nn.Module):
     def __init__(self, filters_in, filters_out, filters_medium):
         super(Residual_block, self).__init__()

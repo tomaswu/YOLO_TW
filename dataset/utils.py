@@ -125,12 +125,22 @@ def xywh2cwh(xywh):
     return np.array([x+w/2,y+h/2,w,h])
 
 def tcwh2xywh(tcwh,size,xind,yind,pw,ph):
+    """decode t_center_w_h to xywh
+    Args:
+        tcwh (tensor): list of tcwh(yolo)
+        size (int): one of [0,1,2],means small,middle,large
+        xind (ind): index of x gird
+        yind (ind): index of y gird
+        pw (float): normed prescale width
+        ph (float): normed prescale height
+    Returns:
+        tensor of normed xywh 
+    """    
     gs=[13,26,52]
     g=gs[size]
     p=[xind/g,yind/g,pw*g,ph*g]
     a=t_cwh2anchors_cwh(tcwh,p)
     return cwh2xywh(a)
-
 
 def onehot_smooth(onehot,N_classes=-1,hyper_parameter = 0.01):
     if N_classes<=0:
@@ -139,15 +149,20 @@ def onehot_smooth(onehot,N_classes=-1,hyper_parameter = 0.01):
     return osm
 
 if __name__=='__main__':
-    import matplotlib.pyplot as plt
-    x=np.arange(100)
-    onehot = np.zeros(100)
-    onehot[77]=1
-    os = onehot_smooth(onehot)
-    plt.figure()
-    # plt.plot(x,onehot,marker='o')
-    plt.plot(x,os)
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # x=np.arange(100)
+    # onehot = np.zeros(100)
+    # onehot[77]=1
+    # os = onehot_smooth(onehot)
+    # plt.figure()
+    # # plt.plot(x,onehot,marker='o')
+    # plt.plot(x,os)
+    # plt.show()
+
+    import torch as th
+    t_cwh=th.tensor([0.00955168,  0.01432752, -3.51035784, -3.71039719]*3)
+    b = tcwh2xywh(t_cwh,2,23,15,156/416,198/416)
+    print(b)
 
 
 

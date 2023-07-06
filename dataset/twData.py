@@ -12,9 +12,13 @@ import PIL.Image as Image
 import torch as th
 import os,json
 import numpy as np
-import config
-import utils
 from pycocotools.coco import COCO
+try:
+    from . import config
+    from . import utils
+except:
+    import config
+    import utils
 
 class cocoDataSet(data.Dataset):
     def __init__(self,dataType = 'val',gird_size=[13,26,52],classified_num=80) -> None:
