@@ -109,12 +109,12 @@ def iouByBbox(b1,b2):
 def t_cwh2anchors_cwh(t,pre_scale):
     tx,ty,tw,th=t
     cx,cy,pw,ph=pre_scale
-    return np.array([tx+cx,ty+cy,pw*np.exp(tw),ph*np.exp(th)])
+    return np.array([sigmod(tx)+cx,sigmod(ty)+cy,pw*np.exp(tw),ph*np.exp(th)])
 
 def anchors_cwh2t_cwh(achors_xywh,pre_scale):
     cx,cy,pw,ph=pre_scale
     x,y,w,h=achors_xywh
-    return np.array([x-cx,y-cy,np.log(w/pw),np.log(h/ph)])
+    return np.array([sigmod_T(x-cx),sigmod_T(y-cy),np.log(w/pw),np.log(h/ph)])
 
 def cwh2xywh(cwh):
     cx,cy,w,h=cwh
@@ -147,6 +147,12 @@ def onehot_smooth(onehot,N_classes=-1,hyper_parameter = 0.01):
         N_classes=len(onehot.flatten())
     osm = onehot * (1 - hyper_parameter) + hyper_parameter * 1.0 / N_classes
     return osm
+
+def sigmod(x):
+    return 1/(1+np.exp(-x))
+
+def sigmod_T(y):
+    return np.log(y/(1-y))
 
 if __name__=='__main__':
     # import matplotlib.pyplot as plt

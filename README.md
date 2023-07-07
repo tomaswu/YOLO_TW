@@ -1,11 +1,11 @@
-# YOLO_TW
+# _TW
 
 ## GOAL
 Commplete my yolo based on yolov3 and yolo v7.
 
 ## LOSS (v3)
 
-$$lbox = \lambda_{coord} \sum^{s^2}_{i=0} \sum^B_{j=0}I_{i,j}^{obj} (2-w_i\times h_i)[se(x_i)+se(y_i)+se(\sqrt{w_i})+se(\sqrt{h_i})] \tag{1}$$
+$$lbox = \lambda_{coord} \sum^{s^2}_{i=0} \sum^B_{j=0}I_{i,j}^{obj} [se(x_i)+se(y_i)+se(\sqrt{w_i})+se(\sqrt{h_i})] \tag{1}$$
 
 $$lobj = \sum^{s^2}_{i=0} \sum^B_{j=0} I_{i,j}^{obj} {\rm BCE}(c_{i,j}) +\lambda_{noobj} \sum^{s^2}_{i=0} \sum^B_{j=0}I_{i,j}^{obj} {\rm BCE}(c_{i,j}) \tag{2}$$
 
