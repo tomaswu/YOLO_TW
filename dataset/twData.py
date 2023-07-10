@@ -52,7 +52,7 @@ class cocoDataSet(data.Dataset):
             bbox =i['bbox'] if k==1 else [tmp*k for tmp in i['bbox']]
             label.append([tidx,np.array(bbox)/self.cfg['output_size'][0]])
         ylabel=self.create_ylabel(label)
-        return img.transpose(2,0,1),ylabel[0],ylabel[1],ylabel[2]
+        return th.tensor(img.transpose(2,0,1),dtype=th.float),th.tensor(ylabel[0],dtype=th.float),th.tensor(ylabel[1],dtype=th.float),th.tensor(ylabel[2],dtype=th.float)  # reutrn 12,26,52
 
     def __len__(self):
         return self.datasetSize
@@ -68,7 +68,9 @@ class cocoDataSet(data.Dataset):
         strides = (w/gs).astype(int)
         # print('strides',strides)
         # * lms_dect * [xind,yind,pre_scale,confidence+tbox+onehot]
-        labels = [np.zeros([gs[i],gs[i],3,1+4+self.classified_num],dtype=np.float32) for i in range(strides.shape[0])]
+        isobj = utils.onehot_smooth(1.0,2)
+        isnoobj = utils.onehot_smooth(0.0,2)
+        labels = [np.zeros([gs[i],gs[i],3,1+4+self.classified_num],dtype=np.float32)+isnoobj for i in range(strides.shape[0])]
         for b in bboxes:
             #onehot
             onehot = np.zeros(self.classified_num,dtype=np.float32)
@@ -93,7 +95,7 @@ class cocoDataSet(data.Dataset):
                         xind=int(cx*g)
                         yind=int(cy*g)
                         pre_scale_ind=prescale_idx
-                        if labels[dectind][xind,yind,pre_scale_ind,0]!=1.0:
+                        if labels[dectind][xind,yind,pre_scale_ind,4]!=isobj:
                             best_dectind=dectind
                             best_xind=xind
                             best_yind=yind
@@ -102,8 +104,8 @@ class cocoDataSet(data.Dataset):
                             ixypwh = [xind/gs[dectind],yind/gs[dectind],pw*gs[dectind],ph*gs[dectind]]
                             t_cwh = utils.anchors_cwh2t_cwh(utils.xywh2cwh(xywh),ixypwh)
             if t_cwh is not None:
-                labels[best_dectind][best_xind,best_yind,best_pre_scale_ind,0]=1.0
-                labels[best_dectind][best_xind,best_yind,best_pre_scale_ind,1:5]=t_cwh
+                labels[best_dectind][best_xind,best_yind,best_pre_scale_ind,4]=isobj
+                labels[best_dectind][best_xind,best_yind,best_pre_scale_ind,0:4]=t_cwh
             else:
                 print('miss a label',b)
         return labels

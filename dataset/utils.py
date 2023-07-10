@@ -114,7 +114,8 @@ def t_cwh2anchors_cwh(t,pre_scale):
 def anchors_cwh2t_cwh(achors_xywh,pre_scale):
     cx,cy,pw,ph=pre_scale
     x,y,w,h=achors_xywh
-    return np.array([sigmod_T(x-cx),sigmod_T(y-cy),np.log(w/pw),np.log(h/ph)])
+    # print(x-cx,y-cy)
+    return np.array([x-cx,y-cy,np.log(w/pw),np.log(h/ph)])  # not using sigmod_T ,add it to loss func
 
 def cwh2xywh(cwh):
     cx,cy,w,h=cwh
@@ -152,6 +153,8 @@ def sigmod(x):
     return 1/(1+np.exp(-x))
 
 def sigmod_T(y):
+    # if y==1:
+    #     y=1-1e-28
     return np.log(y/(1-y))
 
 if __name__=='__main__':
@@ -165,10 +168,12 @@ if __name__=='__main__':
     # plt.plot(x,os)
     # plt.show()
 
-    import torch as th
-    t_cwh=th.tensor([0.00955168,  0.01432752, -3.51035784, -3.71039719]*3)
-    b = tcwh2xywh(t_cwh,2,23,15,156/416,198/416)
-    print(b)
+    # import torch as th
+    # t_cwh=th.tensor([0.00955168,  0.01432752, -3.51035784, -3.71039719]*3)
+    # b = tcwh2xywh(t_cwh,2,23,15,156/416,198/416)
+    # print(b)
+
+    print(onehot_smooth(0,2))
 
 
 

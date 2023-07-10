@@ -39,22 +39,24 @@ class LOSS(nn.Module):
     
     def lbox(self,pred,target):
         # ! tx=pred[:,:,:,:,:0] 0,1,2,3
-        p_x=pred[:,:,:,:,0]        
-        p_y=pred[:,:,:,:,1]        
+        p_x=F.sigmoid(pred[:,:,:,:,0])        
+        p_y=F.sigmoid(pred[:,:,:,:,1])       
         p_w=pred[:,:,:,:,2]        
         p_h=pred[:,:,:,:,3]
-        t_x=target[:,:,:,:,0]        
+        t_x=target[:,:,:,:,0]  # not using sigmod_T ,it is x-cx      
         t_y=target[:,:,:,:,1]        
         t_w=target[:,:,:,:,2]        
         t_h=target[:,:,:,:,3]
         sex = self.se(p_x,t_y)
         sey = self.se(p_y,t_y)
-        sew = self.se(th.sqrt(p_w),th.sqrt(t_w))
-        seh = self.se(th.sqrt(p_h),th.sqrt(t_h))
+        sew = self.se(p_w,t_w)
+        seh = self.se(p_h,t_h)
+        # sew = self.se(th.sqrt(p_w),th.sqrt(t_w))
+        # seh = self.se(th.sqrt(p_h),th.sqrt(t_h))
         total_se = sex+sey+sew+seh
         I_obj = th.round(target[:,:,:,:,4])
         loss_vec = I_obj*total_se
-        print(I_obj.max(),sew[0,0,0,0],sex[0,0,0,0])
+        # print(pred.shape,I_obj.max(),sew[0,0,0,0],sex[0,0,0,0],th.where(p_w<=0))
         loss = th.sum(loss_vec)
         return loss
 

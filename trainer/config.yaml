@@ -1,0 +1,5 @@
+name: "training config"
+total_epoch: 20
+save_per_epoch: 1
+lr: 1e-4
+device: 'auto' # ['cuda','mps','cpu'] 'auto' means check by list

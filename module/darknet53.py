@@ -16,8 +16,8 @@ try:
     import head
 
 except:
-    from .. import layer
-    from .. import head
+    from . import layer
+    from . import head
 
 class DARKNET53(nn.Module):
     def __init__(self):
