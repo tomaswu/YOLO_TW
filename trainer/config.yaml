@@ -1,5 +1,8 @@
 name: "training config"
 total_epoch: 20
-save_per_epoch: 1
+save_per_count: 20
+batch_size: 15
 lr: 1e-4
-device: 'auto' # ['cuda','mps','cpu'] 'auto' means check by list
+device: 'mps' # ['cuda','mps','cpu'] 'auto' means check by list
+save_file: 'auto' # auto means time format file name
+load_file: ''
