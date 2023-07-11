@@ -13,6 +13,8 @@ import config
 import dataset
 import module
 
+import numpy as np
+import cv2
 import time,os
 import torch.utils.data as tud
 import torch as th
@@ -29,6 +31,7 @@ class Trainer():
         log(f'set device {self.cfg["device"]},using {self.device}!!!')
         self._setData()
         self._setModule()
+        self._loadWeight()
 
         # 打开tensorboard
         # cmd: tensorboard --logdir=logs --port=6007
@@ -58,7 +61,7 @@ class Trainer():
 
     def _setData(self):
         log('loading data...')
-        self.train_data = dataset.twData.cocoDataSet('train')
+        self.train_data = dataset.twData.cocoDataSet('val')
         # self.val_data = dataset.twData.cocoDataSet('val')
         # log(f'using data: train {len(self.train_data)} val:{len(self.val_data)}')
 
@@ -72,13 +75,13 @@ class Trainer():
     def _getConfigLr(self):
         return float(self.cfg['lr'])
     
-    def _saveWeight(self):
+    def _saveWeight(self,comment:str=''):
         if self.cfg['save_file']=='auto':
-            fname=time.strftime('%Y%m%d_%H%M%S')+'.pth'
+            fname=time.strftime('%Y%m%d_%H%M%S')+f'_{comment}.pth'
         else:
             fname=self.cfg['save_file']
         fpath = os.path.join('./weights',fname)
-        print(fpath)
+        log(fpath)
         th.save({'weights':self.net.state_dict()},fpath)
     
     def _loadWeight(self):
@@ -86,32 +89,40 @@ class Trainer():
         if os.path.isfile(path):
             fdict = th.load(path,map_location='cpu')
             self.net.load_state_dict(fdict['weights'])
+            log(f'loaded module {path}!!')
 
     def train(self):
         epoch_count = self.cfg['total_epoch']
         bz = self.cfg['batch_size']
-        self.td_loder = tud.DataLoader(dataset=self.train_data,batch_size=bz,shuffle=True,num_workers=4,drop_last=False)
+        self.td_loder = tud.DataLoader(dataset=self.train_data,batch_size=bz,shuffle=False,num_workers=4,drop_last=False)
         self.net.to(self.device)
+        self.net.train()
         for epoch in range(epoch_count):
             for count,data in enumerate(self.td_loder):
                 x,y13,y26,y52 = data
+                # img = np.array(x[0],dtype='uint8').transpose(1,2,0)
+                # cv2.imshow('test',img)
+                # cv2.waitKey(0)
+                # cv2.destroyAllWindows()
                 x=x.to(self.device)
                 y13=y13.to(self.device)
                 y26=y26.to(self.device)
                 y52=y52.to(self.device)
-                for i in range(5):
+                for i in range(1):
                     self.net.zero_grad()
                     p13,p26,p52 = self.net(x)
                     loss13 = self.loss_fn(p13,y13)
                     loss26= self.loss_fn(p26,y26)
                     loss52 = self.loss_fn(p52,y52)
                     loss = loss13 + loss26 + loss52
-                    loss.backward()
                     self.optimer.step()
-                    print(f'epoch&count:{epoch}_{count},loss:{loss:.5f}')
+                    print(f'epoch&count:{epoch}_{count},loss:{loss:.5f},loss13:{loss13:.2f},loss26:{loss26:.2f},loss52:{loss52:.2f}')
                 self.summary_writer.add_scalar('loss-imgs',bz*(count+1)*(epoch+1),loss)
+                self.summary_writer.add_scalar('loss13-imgs',bz*(count+1)*(epoch+1),loss13)
+                self.summary_writer.add_scalar('loss26-imgs',bz*(count+1)*(epoch+1),loss26)
+                self.summary_writer.add_scalar('loss52-imgs',bz*(count+1)*(epoch+1),loss52)
                 if count >0 and count%self.cfg['save_per_count']==0:
-                    self._saveWeight()
+                    self._saveWeight(f'{epoch_count}')
 
 
 

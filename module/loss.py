@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class LOSS(nn.Module):
-    def __init__(self,l_coord=1,l_noobj=0.2,l_class=1):
+    def __init__(self,l_coord=1,l_noobj=0.5,l_class=0.225):
         super().__init__()
         self.l_coord=l_coord
         self.l_noobj = l_noobj
@@ -30,7 +30,11 @@ class LOSS(nn.Module):
         assert len(target.shape)==5,'target input size error.'
         assert pred.shape==target.shape,'shape of pred and target must be same.'
         batch_size = pred.shape[0]
-        total_loss = self.lbox(pred,target)+self.lobj(pred,target)+self.lcls(pred,target)
+        loss_box = self.lbox(pred,target)
+        loss_obj = self.lobj(pred,target)
+        loss_cls = self.lcls(pred,target)
+        # print(loss_box,loss_obj,loss_cls)
+        total_loss = loss_box+loss_obj+loss_cls
         loss=total_loss/batch_size
         return loss
     
@@ -58,7 +62,7 @@ class LOSS(nn.Module):
         loss_vec = I_obj*total_se
         # print(pred.shape,I_obj.max(),sew[0,0,0,0],sex[0,0,0,0],th.where(p_w<=0))
         loss = th.sum(loss_vec)
-        return loss
+        return loss*self.l_coord
 
     def lobj(self,pred,target):
         p_c = pred[:,:,:,:,4]
@@ -67,7 +71,7 @@ class LOSS(nn.Module):
         I_noobj = 1-I_obj
         bce_all = self.BCE(p_c,t_c)
         loss_pobj = th.sum(I_obj*bce_all)
-        loss_nobj = th.sum(self.l_noobj *I_noobj*bce_all)
+        loss_nobj = th.sum(self.l_noobj*I_noobj*bce_all)
         return loss_pobj+loss_nobj
     
     def lcls(self,pred,target):
@@ -78,7 +82,7 @@ class LOSS(nn.Module):
         t_c = target[:,:,:,:,4]
         I_obj = th.round(t_c)
         loss_cls = th.sum(I_obj*bce_sum)
-        return loss_cls
+        return loss_cls*self.l_class
 
 
 if __name__=='__main__':
