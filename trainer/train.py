@@ -61,7 +61,7 @@ class Trainer():
 
     def _setData(self):
         log('loading data...')
-        self.train_data = dataset.twData.cocoDataSet('val')
+        self.train_data = dataset.twData.cocoDataSet('train')
         # self.val_data = dataset.twData.cocoDataSet('val')
         # log(f'using data: train {len(self.train_data)} val:{len(self.val_data)}')
 

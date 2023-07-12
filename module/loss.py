@@ -73,8 +73,8 @@ class LOSS(nn.Module):
         loss_pobj = th.sum(I_obj*bce_all)
         loss_nobj = th.sum(self.l_noobj*I_noobj*bce_all)
         loss = loss_pobj+loss_nobj
-        idx=th.where(I_obj==1)
-        print(th.sum(F.sigmoid(p_c[idx].detach()))/len(p_c[idx]))
+        # idx=th.where(I_obj==1)
+        # print(th.sum(F.sigmoid(p_c[idx].detach()))/len(p_c[idx]))
         return loss
 
     def lcls(self,pred,target):
@@ -85,6 +85,7 @@ class LOSS(nn.Module):
         t_c = target[:,:,:,:,4]
         I_obj = th.round(t_c)
         loss_cls = th.sum(I_obj*bce_sum)
+        # print(F.sigmoid(p_p).max())
         return loss_cls*self.l_class
 
 
