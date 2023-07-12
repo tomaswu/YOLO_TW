@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class LOSS(nn.Module):
-    def __init__(self,l_coord=1,l_object = 1,l_noobj=0.2,l_class=0.225):
+    def __init__(self,l_coord=0.25,l_object = 1,l_noobj=2/400,l_class=0.225):
         super().__init__()
         self.l_coord=l_coord
         self.l_object = l_object
@@ -73,8 +73,8 @@ class LOSS(nn.Module):
         loss_pobj = th.sum(I_obj*bce_all)
         loss_nobj = th.sum(self.l_noobj*I_noobj*bce_all)
         loss = loss_pobj+loss_nobj
-        # idx=th.where(I_obj==1)
-        # print(F.sigmoid(p_c[idx].detach()))
+        idx=th.where(I_obj==1)
+        print(th.sum(F.sigmoid(p_c[idx].detach()))/len(p_c[idx]))
         return loss
 
     def lcls(self,pred,target):

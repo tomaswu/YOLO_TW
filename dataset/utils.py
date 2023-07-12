@@ -109,7 +109,8 @@ def iouByBbox(b1,b2):
 def t_cwh2anchors_cwh(t,pre_scale):
     tx,ty,tw,th=t
     cx,cy,pw,ph=pre_scale
-    return np.array([sigmod(tx)+cx,sigmod(ty)+cy,pw*np.exp(tw),ph*np.exp(th)])
+    x,y,w,h = sigmod(tx)+cx,sigmod(ty)+cy,pw*np.exp(tw),ph*np.exp(th)
+    return np.array([x,y,w,h])
 
 def anchors_cwh2t_cwh(achors_xywh,pre_scale):
     cx,cy,pw,ph=pre_scale

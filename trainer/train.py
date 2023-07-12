@@ -111,7 +111,7 @@ class Trainer():
                 y_l=y_l.to(self.device)
                 y_m=y_m.to(self.device)
                 y_s=y_s.to(self.device)
-                for i in range(1):
+                for i in range(200):
                     self.net.zero_grad()
                     p_l,p_m,p_s = self.net(x)
                     loss_l,loss_l_box,loss_l_obj,loss_l_cls = self.loss_fn(p_l,y_l)
@@ -120,14 +120,14 @@ class Trainer():
                     loss = loss_l + loss_m + loss_s
                     loss.backward()
                     self.optimer.step()
-                    print(f'----------{time.time()-t0:.3f}_epoch&count:{epoch}_{count}_{(count+1)*bz}/{dl}-----------')
+                    print(f'----------{time.time()-t0:.3f}_epoch&count:{epoch}_{count}_{i}_{(count+1)*bz}/{dl}-----------')
                     print(f'loss:{loss:<8.5f} loss13:{loss_l:<8.2f} loss26:{loss_m:<8.2f} loss52:{loss_s:<8.2f}')
                     print(f'box:{loss_l_box:<8.2f} {loss_m_box:<8.2f} {loss_s_box:<8.2f}')
                     print(f'obj:{loss_l_obj:<8.2f} {loss_m_obj:<8.2f} {loss_s_obj:<8.2f}')
                     print(f'cls:{loss_l_cls:<8.2f} {loss_m_cls:<8.2f} {loss_s_cls:<8.2f}')
                     t0=time.time()
-                # self._saveWeight('temp')
-                # return
+                self._saveWeight('temp')
+                return
                 self.summary_writer.add_scalar('loss-imgs',bz*(count+1)*(epoch+1),loss)
                 self.summary_writer.add_scalar('loss_large-imgs',bz*(count+1)*(epoch+1),loss_l)
                 self.summary_writer.add_scalar('loss_middle-imgs',bz*(count+1)*(epoch+1),loss_m)
