@@ -21,12 +21,14 @@ except:
     import utils
 
 class cocoDataSet(data.Dataset):
-    def __init__(self,dataType = 'val',gird_size=[13,26,52],classified_num=80) -> None:
+    def __init__(self,dataType = 'val',classified_num=80) -> None:
         super().__init__()
-        self.gs=np.array(gird_size)
+        
         self.classified_num=classified_num
         self.dataType=dataType
         self.cfg=config.load()
+        iz = self.cfg['output_size'][0]
+        self.gs=np.array([iz//32,iz//16,iz//8])
         af = os.path.join(self.cfg['coco_dir'], f'annotations/instances_{dataType}{self.cocoYear}.json')
         self.coco=COCO(af)
         self.datasetSize=len(self.coco.dataset['images'])
@@ -50,9 +52,12 @@ class cocoDataSet(data.Dataset):
                 continue
             tidx = self.cfg['category'].index(cname)
             bbox =i['bbox'] if k==1 else [tmp*k for tmp in i['bbox']]
-            label.append([tidx,np.array(bbox)/self.cfg['output_size'][0]])
+            label.append([tidx]+list(np.array(bbox)/self.cfg['output_size'][0]))
         ylabel=self.create_ylabel(label)
-        return th.tensor(img.transpose(2,0,1),dtype=th.float),th.tensor(ylabel[0],dtype=th.float),th.tensor(ylabel[1],dtype=th.float),th.tensor(ylabel[2],dtype=th.float)  # reutrn 12,26,52
+        imgs=th.tensor(img.transpose(2,0,1),dtype=th.float)
+        label_large,label_middle,label_small = [th.tensor(i,dtype=th.float) for i in ylabel]
+        # labels = th.tensor(label,dtype=float).reshape(-1,5)
+        return imgs,label_large,label_middle,label_small#, labels# reutrn 12,26,52
 
     def __len__(self):
         return self.datasetSize
@@ -74,7 +79,7 @@ class cocoDataSet(data.Dataset):
         for b in bboxes:
             #onehot
             onehot = np.zeros(self.classified_num,dtype=np.float32)
-            onehot[b[0]] = 1
+            onehot[int(b[0])] = 1
             onehot = utils.onehot_smooth(onehot,self.classified_num)
             best_dectind=0
             best_xind=0
@@ -83,7 +88,7 @@ class cocoDataSet(data.Dataset):
             iou_history=0
             t_cwh=None
             #对应应该选为目标的cx,cy
-            xywh=np.array(b[1])
+            xywh=np.array(b[1:])
             cx,cy = utils.xywh2cwh(xywh)[:2]
             for dect_size,g in enumerate(gs):    
                 for prescale_idx in range(len(self.cfg['pre_scale'][0])):
@@ -106,6 +111,7 @@ class cocoDataSet(data.Dataset):
             if t_cwh is not None:
                 labels[best_dectind][best_xind,best_yind,best_pre_scale_ind,4]=isobj
                 labels[best_dectind][best_xind,best_yind,best_pre_scale_ind,0:4]=t_cwh
+                # print(t_cwh,best_xind,best_yind,best_pre_scale_ind,best_dectind)
             else:
                 print('miss a label',b)
         return labels
@@ -116,13 +122,19 @@ if __name__=='__main__':
     multiprocessing.freeze_support()
     d = cocoDataSet()
 
-    # img,ys,ym,yl = d[55]
-    # t_cwh=[0.00955168,  0.01432752, -3.51035784, -3.71039719]
-    # b = utils.tcwh2xywh(t_cwh,2,23,15,156/416,198/416)
-    # utils.drawLabel(img.transpose(1,2,0),[[0,b]])
+    img,ys,ym,yl= d[0]
+    t_cwh=[-3.70307667, -3.87953649, -2.5584004,  -2.61853048]
+    dect = 1
+    pre_scale = 2
+    x_ind=10
+    y_ind=6
+    s = np.array(d.cfg['pre_scale'][dect][pre_scale])/416
+    b = utils.tcwh2xywh(t_cwh,dect,x_ind,y_ind,s[0],s[1],[8,16,32])
+    print(b)
+    utils.drawLabel(np.array(img,dtype='uint8').transpose(1,2,0),[[0,b]])
 
-    loader = data.DataLoader(d,batch_size=64,shuffle=True,num_workers=0,drop_last=False)
-    i=0
-    for da in loader:
-        print('da:',i,da[1].shape)
-        i+=1
+    # loader = data.DataLoader(d,batch_size=64,shuffle=True,num_workers=0,drop_last=False)
+    # i=0
+    # for da in loader:
+    #     print('da:',i,da[0].shape)
+    #     i+=1

@@ -66,7 +66,7 @@ class Trainer():
         # log(f'using data: train {len(self.train_data)} val:{len(self.val_data)}')
 
     def _setModule(self):
-        self.net = module.darknet53.DARKNET53()
+        self.net = module.yolov3.YOLOV3(img_size=self.train_data.cfg['output_size'][0])
         self.loss_fn = module.loss.LOSS()
         lr = self._getConfigLr()
         self.optimer = th.optim.Adam(self.net.parameters(),lr=lr)
@@ -94,7 +94,7 @@ class Trainer():
     def train(self):
         epoch_count = self.cfg['total_epoch']
         bz = self.cfg['batch_size']
-        self.td_loder = tud.DataLoader(dataset=self.train_data,batch_size=bz,shuffle=True,num_workers=0,drop_last=False)
+        self.td_loder = tud.DataLoader(dataset=self.train_data,batch_size=bz,shuffle=False,num_workers=0,drop_last=False)
         dl = len(self.train_data)
         self.net.to(self.device)
         self.loss_fn.to(self.device)
@@ -102,33 +102,38 @@ class Trainer():
         t0=time.time()
         for epoch in range(epoch_count):
             for count,data in enumerate(self.td_loder):
-                x,y13,y26,y52 = data
+                x,y_l,y_m,y_s = data
                 # img = np.array(x[0],dtype='uint8').transpose(1,2,0)
                 # cv2.imshow('test',img)
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
                 x=x.to(self.device)
-                y13=y13.to(self.device)
-                y26=y26.to(self.device)
-                y52=y52.to(self.device)
+                y_l=y_l.to(self.device)
+                y_m=y_m.to(self.device)
+                y_s=y_s.to(self.device)
                 for i in range(1):
                     self.net.zero_grad()
-                    p13,p26,p52 = self.net(x)
-                    loss13 = self.loss_fn(p13,y13)
-                    loss26= self.loss_fn(p26,y26)
-                    loss52 = self.loss_fn(p52,y52)
-                    loss = loss13 + loss26 + loss52
+                    p_l,p_m,p_s = self.net(x)
+                    loss_l,loss_l_box,loss_l_obj,loss_l_cls = self.loss_fn(p_l,y_l)
+                    loss_m,loss_m_box,loss_m_obj,loss_m_cls = self.loss_fn(p_m,y_m)
+                    loss_s,loss_s_box,loss_s_obj,loss_s_cls = self.loss_fn(p_s,y_s)
+                    loss = loss_l + loss_m + loss_s
                     loss.backward()
                     self.optimer.step()
-                    print(f'{time.time()-t0:.3f}_epoch&count:{epoch}_{count}_{(count+1)*bz}/{dl},loss:{loss:.5f},loss13:{loss13:.2f},loss26:{loss26:.2f},loss52:{loss52:.2f}')
+                    print(f'----------{time.time()-t0:.3f}_epoch&count:{epoch}_{count}_{(count+1)*bz}/{dl}-----------')
+                    print(f'loss:{loss:<8.5f} loss13:{loss_l:<8.2f} loss26:{loss_m:<8.2f} loss52:{loss_s:<8.2f}')
+                    print(f'box:{loss_l_box:<8.2f} {loss_m_box:<8.2f} {loss_s_box:<8.2f}')
+                    print(f'obj:{loss_l_obj:<8.2f} {loss_m_obj:<8.2f} {loss_s_obj:<8.2f}')
+                    print(f'cls:{loss_l_cls:<8.2f} {loss_m_cls:<8.2f} {loss_s_cls:<8.2f}')
                     t0=time.time()
+                # self._saveWeight('temp')
+                # return
                 self.summary_writer.add_scalar('loss-imgs',bz*(count+1)*(epoch+1),loss)
-                self.summary_writer.add_scalar('loss13-imgs',bz*(count+1)*(epoch+1),loss13)
-                self.summary_writer.add_scalar('loss26-imgs',bz*(count+1)*(epoch+1),loss26)
-                self.summary_writer.add_scalar('loss52-imgs',bz*(count+1)*(epoch+1),loss52)
+                self.summary_writer.add_scalar('loss_large-imgs',bz*(count+1)*(epoch+1),loss_l)
+                self.summary_writer.add_scalar('loss_middle-imgs',bz*(count+1)*(epoch+1),loss_m)
+                self.summary_writer.add_scalar('loss_small-imgs',bz*(count+1)*(epoch+1),loss_s)
                 if count >0 and count%self.cfg['save_per_count']==0:
                     self._saveWeight(f'{epoch_count}')
-
 
 
 if __name__=='__main__':

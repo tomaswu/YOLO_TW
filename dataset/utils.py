@@ -115,7 +115,7 @@ def anchors_cwh2t_cwh(achors_xywh,pre_scale):
     cx,cy,pw,ph=pre_scale
     x,y,w,h=achors_xywh
     # print(x-cx,y-cy)
-    return np.array([x-cx,y-cy,np.log(w/pw),np.log(h/ph)])  # not using sigmod_T ,add it to loss func
+    return np.array([sigmod_T(x-cx),sigmod_T(y-cy),np.log(w/pw),np.log(h/ph)])  # not using sigmod_T ,add it to loss func
 
 def cwh2xywh(cwh):
     cx,cy,w,h=cwh
@@ -125,7 +125,7 @@ def xywh2cwh(xywh):
     x,y,w,h=xywh
     return np.array([x+w/2,y+h/2,w,h])
 
-def tcwh2xywh(tcwh,size,xind,yind,pw,ph):
+def tcwh2xywh(tcwh,size,xind,yind,pw,ph,gs):
     """decode t_center_w_h to xywh
     Args:
         tcwh (tensor): list of tcwh(yolo)
@@ -136,8 +136,7 @@ def tcwh2xywh(tcwh,size,xind,yind,pw,ph):
         ph (float): normed prescale height
     Returns:
         tensor of normed xywh 
-    """    
-    gs=[13,26,52]
+    """
     g=gs[size]
     p=[xind/g,yind/g,pw*g,ph*g]
     a=t_cwh2anchors_cwh(tcwh,p)
@@ -153,9 +152,14 @@ def sigmod(x):
     return 1/(1+np.exp(-x))
 
 def sigmod_T(y):
-    # if y==1:
-    #     y=1-1e-28
-    return np.log(y/(1-y))
+    decimal_limit = 1.0e-16
+    assert y<1,'log func need a positive input.'
+    if abs(y)<decimal_limit:
+        return decimal_limit
+    elif abs(1-y)<=decimal_limit:
+        return 1/decimal_limit
+    else:
+        return np.log(y/(1-y))
 
 if __name__=='__main__':
     # import matplotlib.pyplot as plt

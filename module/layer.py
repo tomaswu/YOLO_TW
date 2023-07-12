@@ -98,7 +98,6 @@ class SampleLayer(nn.Module):
     def forward(self, x):
         return F.interpolate(x, scale_factor=self.scale_factor, mode='nearest')
     
-
 class DectLayer(nn.Module):
     def __init__(self,in_channels,out_channels,N_classes=80):
         super().__init__()
@@ -126,6 +125,16 @@ class ConvolutionalSetLayer(nn.Module):
     def forward(self, x):
         return self.sub_module(x)
 
+class ResOperator(nn.Module):
+    def __init__(self,in_channels,out_channels,N) -> None:
+        super().__init__()
+        self.cv = Convolutional(in_channels,out_channels,3,2,1,'bn','leaky') 
+        self.res = Residual_block(out_channels,out_channels,out_channels//2)
+        self.net = nn.Sequential(*([self.cv]+[self.res]*N))
+    
+    def forward(self,x):
+        return self.net(x)
+        
 
 if __name__=='__main__':
     a=th.rand(8,3,52,52)

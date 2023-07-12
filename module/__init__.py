@@ -1,2 +1,2 @@
-from . import darknet53
+from . import yolov3
 from . import loss

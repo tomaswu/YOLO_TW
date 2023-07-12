@@ -12,13 +12,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class LOSS(nn.Module):
-    def __init__(self,l_coord=1,l_noobj=0.5,l_class=0.225):
+    def __init__(self,l_coord=1,l_object = 1,l_noobj=0.2,l_class=0.225):
         super().__init__()
         self.l_coord=l_coord
+        self.l_object = l_object
         self.l_noobj = l_noobj
         self.l_class = l_class
         self.BCE = nn.BCEWithLogitsLoss(reduction='none')
-        self.meanBCE = nn.BCEWithLogitsLoss(reduction='mean')
+        self.objBCE = nn.BCEWithLogitsLoss(reduction='mean')
 
     def forward(self,pred,target):
         """cal loss of box
@@ -30,21 +31,21 @@ class LOSS(nn.Module):
         assert len(target.shape)==5,'target input size error.'
         assert pred.shape==target.shape,'shape of pred and target must be same.'
         batch_size = pred.shape[0]
-        loss_box = self.lbox(pred,target)
-        loss_obj = self.lobj(pred,target)
-        loss_cls = self.lcls(pred,target)
+        loss_box = self.lbox(pred,target)/batch_size
+        loss_obj = self.lobj(pred,target)*self.l_object/batch_size
+        loss_cls = self.lcls(pred,target)/batch_size
         # print(loss_box,loss_obj,loss_cls)
         total_loss = loss_box+loss_obj+loss_cls
-        loss=total_loss/batch_size
-        return loss
+        loss=total_loss
+        return loss,loss_box,loss_obj,loss_cls
     
     def se(self,x,y):
         return th.pow(x-y,2)
     
     def lbox(self,pred,target):
         # ! tx=pred[:,:,:,:,:0] 0,1,2,3
-        p_x=F.sigmoid(pred[:,:,:,:,0])        
-        p_y=F.sigmoid(pred[:,:,:,:,1])       
+        p_x=pred[:,:,:,:,0]   
+        p_y=pred[:,:,:,:,1]   
         p_w=pred[:,:,:,:,2]        
         p_h=pred[:,:,:,:,3]
         t_x=target[:,:,:,:,0]  # not using sigmod_T ,it is x-cx      
@@ -60,7 +61,6 @@ class LOSS(nn.Module):
         total_se = sex+sey+sew+seh
         I_obj = th.round(target[:,:,:,:,4])
         loss_vec = I_obj*total_se
-        # print(pred.shape,I_obj.max(),sew[0,0,0,0],sex[0,0,0,0],th.where(p_w<=0))
         loss = th.sum(loss_vec)
         return loss*self.l_coord
 
@@ -72,8 +72,11 @@ class LOSS(nn.Module):
         bce_all = self.BCE(p_c,t_c)
         loss_pobj = th.sum(I_obj*bce_all)
         loss_nobj = th.sum(self.l_noobj*I_noobj*bce_all)
-        return loss_pobj+loss_nobj
-    
+        loss = loss_pobj+loss_nobj
+        # idx=th.where(I_obj==1)
+        # print(F.sigmoid(p_c[idx].detach()))
+        return loss
+
     def lcls(self,pred,target):
         p_p = pred[:,:,:,:,5:]
         t_p = target[:,:,:,:,5:]

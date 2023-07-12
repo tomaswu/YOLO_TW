@@ -20,7 +20,7 @@ import torch.nn as nn
 import cv2
 import numpy as np
 
-net = module.darknet53.DARKNET53()
+net = module.yolov3.YOLOV3()
 
 fdict = th.load('weights/20230712_004322_20_temp.pth',map_location='cpu')
 net.load_state_dict(fdict['weights'])
