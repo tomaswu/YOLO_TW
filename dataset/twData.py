@@ -21,14 +21,17 @@ except:
     import utils
 
 class cocoDataSet(data.Dataset):
-    def __init__(self,dataType = 'val',classified_num=80) -> None:
+    def __init__(self,dataType = 'val',classified_num=80,output_size=None) -> None:
         super().__init__()
         
         self.classified_num=classified_num
         self.dataType=dataType
         self.cfg=config.load()
-        iz = self.cfg['output_size'][0]
-        self.gs=np.array([iz//32,iz//16,iz//8])
+        if output_size is None:
+            self.iz = self.cfg['output_size']
+        else:
+            self.iz = output_size
+        self.gs=np.array([self.iz[0]//32,self.iz[0]//16,self.iz[0]//8])
         af = os.path.join(self.cfg['coco_dir'], f'annotations/instances_{dataType}{self.cocoYear}.json')
         self.coco=COCO(af)
         self.datasetSize=len(self.coco.dataset['images'])
@@ -38,7 +41,7 @@ class cocoDataSet(data.Dataset):
         fname = self.coco.loadImgs(imgIdx)[0]['file_name']
         fpath = os.path.join(self.cfg['coco_dir'],f'{self.dataType}{self.cocoYear}',fname)
         img = Image.open(fpath)
-        img,k=utils.padding(np.array(img),self.cfg['output_size'],self.cfg['output_gray'])
+        img,k=utils.padding(np.array(img),self.iz,self.cfg['output_gray'])
         if self.cfg['output_gray']:
             img.reshape(img.shape[0],img.shape[1],1)
         annIdx = self.coco.getAnnIds(imgIdx)
@@ -52,7 +55,7 @@ class cocoDataSet(data.Dataset):
                 continue
             tidx = self.cfg['category'].index(cname)
             bbox =i['bbox'] if k==1 else [tmp*k for tmp in i['bbox']]
-            label.append([tidx]+list(np.array(bbox)/self.cfg['output_size'][0]))
+            label.append([tidx]+list(np.array(bbox)/self.iz[0]))
         ylabel=self.create_ylabel(label)
         imgs=th.tensor(img.transpose(2,0,1),dtype=th.float)
         label_large,label_middle,label_small = [th.tensor(i,dtype=th.float) for i in ylabel]
@@ -111,7 +114,8 @@ class cocoDataSet(data.Dataset):
             if t_cwh is not None:
                 labels[best_dectind][best_xind,best_yind,best_pre_scale_ind,4]=isobj
                 labels[best_dectind][best_xind,best_yind,best_pre_scale_ind,0:4]=t_cwh
-                # print(t_cwh,best_xind,best_yind,best_pre_scale_ind,best_dectind)
+                # print(best_xind,best_yind,best_pre_scale_ind,best_dectind)
+                # print(xywh,t_cwh)
             else:
                 print('miss a label',b)
         return labels
@@ -123,14 +127,17 @@ if __name__=='__main__':
     d = cocoDataSet()
 
     img,ys,ym,yl= d[0]
-    t_cwh=[-3.70307667, -3.87953649, -2.5584004,  -2.61853048]
+    t_cwh=[-5.24276853, -4.28096829, -2.58580679, -2.35624186]
+    xywh = np.array([0.60728125, 0.10925,    0.17095313, 0.43378125])
     dect = 1
     pre_scale = 2
-    x_ind=10
-    y_ind=6
+    x_ind=11
+    y_ind=5
     s = np.array(d.cfg['pre_scale'][dect][pre_scale])/416
     b = utils.tcwh2xywh(t_cwh,dect,x_ind,y_ind,s[0],s[1],[8,16,32])
+    print('=====================')
     print(b)
+    print(img.shape)
     utils.drawLabel(np.array(img,dtype='uint8').transpose(1,2,0),[[0,b]])
 
     # loader = data.DataLoader(d,batch_size=64,shuffle=True,num_workers=0,drop_last=False)

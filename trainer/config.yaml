@@ -1,8 +1,8 @@
 name: "training config"
-total_epoch: 20
-save_per_count: 50
-batch_size: 4
-lr: 1e-3
+total_epoch: 300
+save_per_count: 10
+batch_size: 32
+lr: 1e-4
 device: 'auto' # ['cuda','mps','cpu'] 'auto' means check by list
 save_file: 'auto' # auto means time format file name
-load_file: ''
+load_file: 'weights/20230713_001304_temp.pth'

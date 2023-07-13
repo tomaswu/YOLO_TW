@@ -61,7 +61,7 @@ class Trainer():
 
     def _setData(self):
         log('loading data...')
-        self.train_data = dataset.twData.cocoDataSet('train')
+        self.train_data = dataset.twData.cocoDataSet('val')
         # self.val_data = dataset.twData.cocoDataSet('val')
         # log(f'using data: train {len(self.train_data)} val:{len(self.val_data)}')
 
@@ -94,7 +94,7 @@ class Trainer():
     def train(self):
         epoch_count = self.cfg['total_epoch']
         bz = self.cfg['batch_size']
-        self.td_loder = tud.DataLoader(dataset=self.train_data,batch_size=bz,shuffle=False,num_workers=0,drop_last=False)
+        self.td_loder = tud.DataLoader(dataset=self.train_data,batch_size=bz,shuffle=False,num_workers=4,drop_last=False)
         dl = len(self.train_data)
         self.net.to(self.device)
         self.loss_fn.to(self.device)
@@ -111,7 +111,7 @@ class Trainer():
                 y_l=y_l.to(self.device)
                 y_m=y_m.to(self.device)
                 y_s=y_s.to(self.device)
-                for i in range(200):
+                for i in range(5):
                     self.net.zero_grad()
                     p_l,p_m,p_s = self.net(x)
                     loss_l,loss_l_box,loss_l_obj,loss_l_cls = self.loss_fn(p_l,y_l)
@@ -122,18 +122,18 @@ class Trainer():
                     self.optimer.step()
                     print(f'----------{time.time()-t0:.3f}_epoch&count:{epoch}_{count}_{i}_{(count+1)*bz}/{dl}-----------')
                     print(f'loss:{loss:<8.5f} loss13:{loss_l:<8.2f} loss26:{loss_m:<8.2f} loss52:{loss_s:<8.2f}')
-                    print(f'box:{loss_l_box:<8.2f} {loss_m_box:<8.2f} {loss_s_box:<8.2f}')
-                    print(f'obj:{loss_l_obj:<8.2f} {loss_m_obj:<8.2f} {loss_s_obj:<8.2f}')
-                    print(f'cls:{loss_l_cls:<8.2f} {loss_m_cls:<8.2f} {loss_s_cls:<8.2f}')
+                    print(f'box:{loss_l_box:<8.4f} {loss_m_box:<8.4f} {loss_s_box:<8.4f}')
+                    print(f'obj:{loss_l_obj:<8.4f} {loss_m_obj:<8.4f} {loss_s_obj:<8.4f}')
+                    print(f'cls:{loss_l_cls:<8.4f} {loss_m_cls:<8.4f} {loss_s_cls:<8.4f}')
                     t0=time.time()
-                self._saveWeight('temp')
-                return
-                self.summary_writer.add_scalar('loss-imgs',bz*(count+1)*(epoch+1),loss)
-                self.summary_writer.add_scalar('loss_large-imgs',bz*(count+1)*(epoch+1),loss_l)
-                self.summary_writer.add_scalar('loss_middle-imgs',bz*(count+1)*(epoch+1),loss_m)
-                self.summary_writer.add_scalar('loss_small-imgs',bz*(count+1)*(epoch+1),loss_s)
+                # self._saveWeight('temp')
+                # return
+                self.summary_writer.add_scalar('loss-imgs',loss,bz*(count+1)*(epoch+1))
+                self.summary_writer.add_scalar('loss_large-imgs',loss_l,bz*(count+1)*(epoch+1))
+                self.summary_writer.add_scalar('loss_middle-imgs',loss_m,bz*(count+1)*(epoch+1))
+                self.summary_writer.add_scalar('loss_small-imgs',loss_s,bz*(count+1)*(epoch+1))
                 if count >0 and count%self.cfg['save_per_count']==0:
-                    self._saveWeight(f'{epoch_count}')
+                    self._saveWeight(f'{epoch}_{count}')
 
 
 if __name__=='__main__':

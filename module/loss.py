@@ -12,14 +12,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class LOSS(nn.Module):
-    def __init__(self,l_coord=0.25,l_object = 1,l_noobj=2/400,l_class=0.225):
+    def __init__(self,l_coord=1,l_object = 1,l_noobj=0.5,l_class=1):
         super().__init__()
         self.l_coord=l_coord
         self.l_object = l_object
         self.l_noobj = l_noobj
         self.l_class = l_class
         self.BCE = nn.BCEWithLogitsLoss(reduction='none')
-        self.objBCE = nn.BCEWithLogitsLoss(reduction='mean')
+        self.meanBCE = nn.BCEWithLogitsLoss(reduction='mean')
 
     def forward(self,pred,target):
         """cal loss of box
@@ -31,9 +31,9 @@ class LOSS(nn.Module):
         assert len(target.shape)==5,'target input size error.'
         assert pred.shape==target.shape,'shape of pred and target must be same.'
         batch_size = pred.shape[0]
-        loss_box = self.lbox(pred,target)/batch_size
-        loss_obj = self.lobj(pred,target)*self.l_object/batch_size
-        loss_cls = self.lcls(pred,target)/batch_size
+        loss_box = self.lbox(pred,target)#/batch_size
+        loss_obj = self.lobj(pred,target)*self.l_object
+        loss_cls = self.lcls(pred,target)#/batch_size
         # print(loss_box,loss_obj,loss_cls)
         total_loss = loss_box+loss_obj+loss_cls
         loss=total_loss
@@ -44,8 +44,8 @@ class LOSS(nn.Module):
     
     def lbox(self,pred,target):
         # ! tx=pred[:,:,:,:,:0] 0,1,2,3
-        p_x=pred[:,:,:,:,0]   
-        p_y=pred[:,:,:,:,1]   
+        p_x=F.sigmoid(pred[:,:,:,:,0])   
+        p_y=F.sigmoid(pred[:,:,:,:,1])
         p_w=pred[:,:,:,:,2]        
         p_h=pred[:,:,:,:,3]
         t_x=target[:,:,:,:,0]  # not using sigmod_T ,it is x-cx      
@@ -69,19 +69,27 @@ class LOSS(nn.Module):
         t_c = target[:,:,:,:,4]
         I_obj = th.round(t_c)
         I_noobj = 1-I_obj
+        idx=th.where(I_obj==1)
+        idx2=th.where(I_obj==0)
+        s1 = len(idx[0])
+        s2 = len(idx2[0])
         bce_all = self.BCE(p_c,t_c)
         loss_pobj = th.sum(I_obj*bce_all)
         loss_nobj = th.sum(self.l_noobj*I_noobj*bce_all)
+        if s1>0:
+            loss_pobj/=s1
+        if s2>0:
+            loss_nobj/=s2
         loss = loss_pobj+loss_nobj
-        # idx=th.where(I_obj==1)
-        # print(th.sum(F.sigmoid(p_c[idx].detach()))/len(p_c[idx]))
+        # print(th.sum(F.sigmoid(p_c[idx].detach()))/len(p_c[idx]),th.sum(F.sigmoid(p_c[idx2].detach()))/len(p_c[idx2]))
+        # print(th.min(F.sigmoid(p_c[idx].detach())),th.max(F.sigmoid(p_c[idx2].detach())))
         return loss
 
     def lcls(self,pred,target):
         p_p = pred[:,:,:,:,5:]
         t_p = target[:,:,:,:,5:]
         bce_all = self.BCE(p_p,t_p)
-        bce_sum = th.sum(bce_all,4)
+        bce_sum = th.sum(bce_all,4)/80
         t_c = target[:,:,:,:,4]
         I_obj = th.round(t_c)
         loss_cls = th.sum(I_obj*bce_sum)

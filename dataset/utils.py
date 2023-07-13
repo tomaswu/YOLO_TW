@@ -73,7 +73,7 @@ def drawLabel(img,label,t=0):
         b=[int(j) for j in b]
         cv2.rectangle(img,b,[0,255,0],1,cv2.LINE_AA)
         cv2.putText(img,f'{idx}',(b[0],b[1]),cv2.FONT_HERSHEY_SIMPLEX,0.75,[0,0,255],1)
-    cv2.imshow('test',img)
+    cv2.imshow('test',cv2.resize(img,[416,416]))
     cv2.waitKey(t)
 
 def iouByBbox(b1,b2):
@@ -116,7 +116,7 @@ def anchors_cwh2t_cwh(achors_xywh,pre_scale):
     cx,cy,pw,ph=pre_scale
     x,y,w,h=achors_xywh
     # print(x-cx,y-cy)
-    return np.array([sigmod_T(x-cx),sigmod_T(y-cy),np.log(w/pw),np.log(h/ph)])  # not using sigmod_T ,add it to loss func
+    return np.array([x-cx,y-cy,np.log(w/pw),np.log(h/ph)])  # not using sigmod_T ,add it to loss func
 
 def cwh2xywh(cwh):
     cx,cy,w,h=cwh
